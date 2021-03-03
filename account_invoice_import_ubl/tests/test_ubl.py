@@ -39,7 +39,7 @@ class TestUbl(TransactionCase):
         aio = self.env['account.invoice']
         aiio = self.env['account.invoice.import']
         precision = self.env['decimal.precision'].precision_get('Account')
-        for (sample_file, res_dict) in sample_files.items():
+        for (sample_file, res_dict) in list(sample_files.items()):
             f = file_open(
                 'account_invoice_import_ubl/tests/files/' + sample_file,
                 'rb')

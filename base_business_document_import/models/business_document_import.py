@@ -34,7 +34,7 @@ class BusinessDocumentImport(models.AbstractModel):
     @api.model
     def _strip_cleanup_dict(self, match_dict):
         if match_dict:
-            for key, value in match_dict.items():
+            for key, value in list(match_dict.items()):
                 if value and isinstance(value, str):
                     match_dict[key] = value.strip()
             if match_dict.get('country_code'):
@@ -725,7 +725,7 @@ class BusinessDocumentImport(models.AbstractModel):
                     'uom': uom,
                     'import_line': iline,
                 })
-        for exiting_dict in existing_lines_dict.values():
+        for exiting_dict in list(existing_lines_dict.values()):
             if not exiting_dict.get('import'):
                 if res['to_remove']:
                     res['to_remove'] += exiting_dict['line']
@@ -777,7 +777,7 @@ class BusinessDocumentImport(models.AbstractModel):
                     return aao.browse(speed_dict[acc_code_tmp])
             # Match when account_dict['code'] is shorter than Odoo's accounts
             # -> warns the user about this
-            for code, account_id in speed_dict.items():
+            for code, account_id in list(speed_dict.items()):
                 if code.startswith(acc_code):
                     chatter_msg.append(_(
                         "Approximate match: account %s has been matched "
@@ -940,7 +940,7 @@ class BusinessDocumentImport(models.AbstractModel):
                     xmlfiles[embeddedfile] = embeddedfiles[i + 1]
                 i += 1
             logger.debug('xmlfiles=%s', xmlfiles)
-            for filename, xml_file_dict_obj in xmlfiles.items():
+            for filename, xml_file_dict_obj in list(xmlfiles.items()):
                 try:
                     xml_file_dict = xml_file_dict_obj.getObject()
                     logger.debug('xml_file_dict=%s', xml_file_dict)
@@ -961,7 +961,7 @@ class BusinessDocumentImport(models.AbstractModel):
     def post_create_or_update(self, parsed_dict, record, doc_filename=None):
         if parsed_dict.get('attachments'):
             for filename, data_base64 in\
-                    parsed_dict['attachments'].items():
+                    list(parsed_dict['attachments'].items()):
                 self.env['ir.attachment'].create({
                     'name': filename,
                     'res_id': record.id,

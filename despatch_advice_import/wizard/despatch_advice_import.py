@@ -120,7 +120,7 @@ class DespatchAdviceImport(models.TransientModel):
             raise UserError(
                 _("There are no embedded XML file in this PDF file.")
             )
-        for xml_filename, xml_root in xml_files_dict.iteritems():
+        for xml_filename, xml_root in xml_files_dict.items():
             logger.info("Trying to parse XML file %s", xml_filename)
             try:
                 parsed_despatch_advice = self.parse_xml_despatch_advice(
@@ -158,7 +158,7 @@ class DespatchAdviceImport(models.TransientModel):
         lines = parsed_order_document.get("lines")
         lines_by_id = {int(line["line_id"]): line for line in lines}
 
-        for line_id, line_info in lines_by_id.iteritems():
+        for line_id, line_info in lines_by_id.items():
             line = order.order_line.search([("id", "=", line_id)])
             if line:
                 stock_moves = line.move_ids.filtered(
@@ -184,7 +184,7 @@ class DespatchAdviceImport(models.TransientModel):
             _("Delivery cancelled by the supplier.")
         )
 
-        stock_moves.action_cancel()
+        stock_moves._action_cancel()
 
     @api.model
     def _process_accepted(self, stock_moves, parsed_order_document):
@@ -194,7 +194,7 @@ class DespatchAdviceImport(models.TransientModel):
         parsed_order_document["chatter_msg"].append(
             _("Delivery confirmed by the supplier.")
         )
-        stock_moves.action_confirm()
+        stock_moves._action_confirm()
 
     @api.model
     def _process_conditional(self, moves, parsed_order_document, line):
@@ -207,7 +207,7 @@ class DespatchAdviceImport(models.TransientModel):
         chatter.append(_("Delivery confirmed with amendment by the supplier."))
 
         qty = line["qty"]
-        backorder_qty = line["backorder_qty"]
+        backorder_qty= line["backorder_qty"]
         moves_qty = sum(moves.mapped("product_qty"))
 
         if float_compare(qty, moves_qty, precision_digits=precision) >= 0:
@@ -233,7 +233,7 @@ class DespatchAdviceImport(models.TransientModel):
                 < 0
             ):
                 # qty planned < qty into the stock move: Split it
-                new_move_id = move.split(move.product_qty - qty)
+                new_move_id = move._split(move.product_qty - qty)
                 move = self.env["stock.move"].browse(new_move_id)
             qty -= move.product_qty
             if not backorder_qty:
@@ -253,7 +253,7 @@ class DespatchAdviceImport(models.TransientModel):
                 # backorder_qty < qty into the move -> split the move
                 # anf cancel remaining qty
                 move_ids_to_cancel.append(
-                    move.split(move.product_qty - backorder_qty)
+                    move._split(move.product_qty - backorder_qty)
                 )
 
             backorder_qty -= move.product_qty
@@ -267,12 +267,12 @@ class DespatchAdviceImport(models.TransientModel):
         # cancel moves to cancel
         if move_ids_to_cancel:
             moves_to_cancel = self.env["stock.move"].browse(move_ids_to_cancel)
-            moves_to_cancel.action_cancel()
+            moves_to_cancel._action_cancel()
             moves_to_cancel.write(
                 {"note": _("No backorder planned by the supplier.")}
             )
         # Reset Operations
-        moves[0].picking_id.do_prepare_partial()
+        # moves[0].picking_id.do_prepare_partial()
 
     @api.model
     def _add_moves_to_backorder(self, moves):
@@ -280,7 +280,7 @@ class DespatchAdviceImport(models.TransientModel):
         Add the move the picking's backorder
         return the backorder associated to the current picking. If no backorder
         exists, create a new one.
-        :param move:
+        : param move:
         """
         StockPicking = self.env["stock.picking"]
         current_picking = moves[0].picking_id
@@ -294,8 +294,8 @@ class DespatchAdviceImport(models.TransientModel):
             current_picking.date_done = date_done
         else:
             moves.write({"picking_id": backorder.id})
-            backorder.action_confirm()
-            backorder.action_assign()
+            backorder._action_confirm()
+            backorder._action_assign()
 
     @api.model
     def _check_picking_status(self, picking):
@@ -305,7 +305,7 @@ class DespatchAdviceImport(models.TransientModel):
         :return:
         """
         if any(
-            operation.qty_done != 0 for operation in picking.pack_operation_ids
+            operation.qty_done != 0 for operation in picking.move_line_ids
         ):
             raise UserError(
                 _(

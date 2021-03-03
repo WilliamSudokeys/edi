@@ -65,7 +65,7 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_1.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 24,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref('uom.product_uom_unit').id,
                 "price_unit": 15,
             }
         )
@@ -76,7 +76,7 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_2.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 5,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref('uom.product_uom_unit').id,
                 "price_unit": 25,
             }
         )
@@ -88,7 +88,7 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_3.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 15,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 25,
             }
         )
@@ -100,12 +100,12 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_4.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 15,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 25,
             }
         )
-        cls._add_procurements(cls.line3, [5])
-        cls._add_procurements(cls.line4, [2, 2, 2])
+        # cls._add_procurements(cls.line3, [5])
+        # cls._add_procurements(cls.line4, [2, 2, 2])
         cls.purchase_order.button_confirm()
         cls.picking = cls.purchase_order.picking_ids
 
@@ -130,19 +130,19 @@ class TestDespatchAdviceImport(SavepointCase):
             "ref": str(self.purchase_order.name),
         }
 
-    @classmethod
-    def _add_procurements(cls, line, qties):
-        for qty in qties:
-            cls.env["procurement.order"].create(
-                {
-                    "name": "Test",
-                    "product_id": line.product_id.id,
-                    "product_qty": qty,
-                    "product_uom": line.product_uom.id,
-                    "state": "done",
-                    "purchase_line_id": line.id,
-                }
-            )
+    # @classmethod
+    # def _add_procurements(cls, line, qties):
+    #     for qty in qties:
+    #         cls.env["procurement.order"].create(
+    #             {
+    #                 "name": "Test",
+    #                 "product_id": line.product_id.id,
+    #                 "product_qty": qty,
+    #                 "product_uom": line.product_uom.id,
+    #                 "state": "done",
+    #                 "purchase_line_id": line.id,
+    #             }
+    #         )
 
     def test_00(self):
         """
@@ -168,9 +168,7 @@ class TestDespatchAdviceImport(SavepointCase):
         data = self._get_base_data()
         confirmed_qty = self.line1.product_qty - 21
         data["lines"] = [
-            self.order_line_to_data(
-                self.line1, qty=confirmed_qty, backorder_qty=21
-            ),
+            self.order_line_to_data(self.line1, qty=confirmed_qty, backorder_qty=21),
             self.order_line_to_data(self.line2),
             self.order_line_to_data(self.line3),
             self.order_line_to_data(self.line4),
@@ -180,9 +178,7 @@ class TestDespatchAdviceImport(SavepointCase):
         self.assertTrue(self.purchase_order.picking_ids)
         move_ids = self.line1.move_ids
         self.assertEqual(len(move_ids), 2)
-        self.assertEqual(
-            sum(move_ids.mapped("product_qty")), self.line1.product_qty
-        )
+        self.assertEqual(sum(move_ids.mapped("product_qty")), self.line1.product_qty)
         assigned = move_ids.filtered(
             lambda s: s.state == "assigned" and s.product_qty == 3
         )
@@ -192,9 +188,7 @@ class TestDespatchAdviceImport(SavepointCase):
             lambda s: s.state == "assigned" and s.product_qty == 21
         )
         self.assertTrue(move_backorder)
-        self.assertEqual(
-            move_backorder.picking_id.backorder_id, assigned.picking_id
-        )
+        self.assertEqual(move_backorder.picking_id.backorder_id, assigned.picking_id)
 
     def test_02(self):
         """
@@ -213,9 +207,7 @@ class TestDespatchAdviceImport(SavepointCase):
         self.assertTrue(self.purchase_order.picking_ids)
         move_ids = self.line1.move_ids
         self.assertEqual(len(move_ids), 2)
-        self.assertEqual(
-            sum(move_ids.mapped("product_qty")), self.line1.product_qty
-        )
+        self.assertEqual(sum(move_ids.mapped("product_qty")), self.line1.product_qty)
         assigned = move_ids.filtered(lambda s: s.state == "assigned")
         self.assertEqual(assigned.product_qty, confirmed_qty)
         cancel = move_ids.filtered(lambda s: s.state == "cancel")
@@ -253,8 +245,7 @@ class TestDespatchAdviceImport(SavepointCase):
             sum(line1_move_ids.mapped("product_qty")), self.line1.product_qty
         )
         move_confirmed = line1_move_ids.filtered(
-            lambda s: s.state == "assigned"
-            and s.product_qty == line1_confirmed_qty
+            lambda s: s.state == "assigned" and s.product_qty == line1_confirmed_qty
         )
         self.assertTrue(move_confirmed)
         self.assertEqual(move_confirmed.product_qty, line1_confirmed_qty)
@@ -273,8 +264,7 @@ class TestDespatchAdviceImport(SavepointCase):
             sum(line2_move_ids.mapped("product_qty")), self.line2.product_qty
         )
         move_confirmed = line2_move_ids.filtered(
-            lambda s: s.state == "assigned"
-            and s.product_qty == line2_confirmed_qty
+            lambda s: s.state == "assigned" and s.product_qty == line2_confirmed_qty
         )
         self.assertTrue(move_confirmed)
         self.assertEqual(move_confirmed.product_qty, line2_confirmed_qty)
@@ -306,9 +296,7 @@ class TestDespatchAdviceImport(SavepointCase):
         self.assertEqual(len(self.purchase_order.picking_ids), 2)
         move_ids = self.line1.move_ids
         self.assertEqual(len(move_ids), 3)
-        self.assertEqual(
-            sum(move_ids.mapped("product_qty")), self.line1.product_qty
-        )
+        self.assertEqual(sum(move_ids.mapped("product_qty")), self.line1.product_qty)
         move_confirmed = move_ids.filtered(
             lambda s: s.state == "assigned" and s.product_qty == confirmed_qty
         )
@@ -337,24 +325,18 @@ class TestDespatchAdviceImport(SavepointCase):
         data["lines"] = [
             self.order_line_to_data(self.line1),
             self.order_line_to_data(self.line2),
-            self.order_line_to_data(
-                self.line3, qty=confirmed_qty, backorder_qty=3
-            ),
+            self.order_line_to_data(self.line3, qty=confirmed_qty, backorder_qty=3),
             self.order_line_to_data(self.line4),
         ]
         self.DespatchAdviceImport.process_data(data)
         self.assertEqual(len(self.purchase_order.picking_ids), 2)
         move_ids = self.line3.move_ids
         self.assertEqual(len(move_ids), 4)
-        self.assertEqual(
-            sum(move_ids.mapped("product_qty")), self.line3.product_qty
-        )
+        self.assertEqual(sum(move_ids.mapped("product_qty")), self.line3.product_qty)
         moves_confirmed = move_ids.filtered(
             lambda s: s.state == "assigned" and not s.picking_id.backorder_id
         )
-        self.assertEqual(
-            sum(moves_confirmed.mapped("product_qty")), confirmed_qty
-        )
+        self.assertEqual(sum(moves_confirmed.mapped("product_qty")), confirmed_qty)
 
         move_cancel = move_ids.filtered(
             lambda s: s.state == "cancel" and s.product_qty == 6
@@ -386,9 +368,7 @@ class TestDespatchAdviceImport(SavepointCase):
         self.DespatchAdviceImport.process_data(data)
         self.assertEqual(len(self.purchase_order.picking_ids), 2)
         move_ids = self.line4.move_ids
-        self.assertEqual(
-            sum(move_ids.mapped("product_qty")), self.line4.product_qty
-        )
+        self.assertEqual(sum(move_ids.mapped("product_qty")), self.line4.product_qty)
         moves_confirmed = move_ids.filtered(
             lambda s: s.state == "assigned" and not s.picking_id.backorder_id
         )

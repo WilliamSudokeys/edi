@@ -12,7 +12,7 @@ class MailTemplate(models.Model):
         res = super(MailTemplate, self).generate_email(res_ids, fields)
         if not self.env.context.get('attach_ubl_xml_file'):
             return res
-        for res_id, template in self.get_email_template(res_ids).items():
+        for res_id, template in list(self.get_email_template(res_ids).items()):
             invoice = self.env['account.invoice'].browse(res_id)
             version = invoice.get_ubl_version()
             ubl_filename = invoice.get_ubl_filename(version=version)

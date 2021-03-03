@@ -188,7 +188,7 @@ class AccountInvoiceImport(models.TransientModel):
                 acentry['name'] = _('Misc Charge')
         else:
             raise UserError(_('Unknown ChargeIndicator %s', ch_indic))
-        acentry['name'] = u'%s (%s)' % (acentry['name'], label_suffix)
+        acentry['name'] = '%s (%s)' % (acentry['name'], label_suffix)
         taxes_xpath = self.raw_multi_xpath_helper(
             acline, ["ram:CategoryTradeTax"], namespaces)
         if taxes_xpath:

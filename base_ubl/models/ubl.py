@@ -120,7 +120,7 @@ class BaseUbl(models.AbstractModel):
         if id_dict:
             party_identification = etree.SubElement(
                 parent_node, ns['cac'] + 'PartyIdentification')
-            for scheme_name, party_id_text in id_dict.items():
+            for scheme_name, party_id_text in list(id_dict.items()):
                 party_identification_id = etree.SubElement(
                     party_identification, ns['cbc'] + 'ID',
                     schemeName=scheme_name)
@@ -682,7 +682,7 @@ class BaseUbl(models.AbstractModel):
                     xmlfiles[embeddedfile] = embeddedfiles[i+1]
                 i += 1
             logger.debug('xmlfiles=%s', xmlfiles)
-            for filename, xml_file_dict_obj in xmlfiles.items():
+            for filename, xml_file_dict_obj in list(xmlfiles.items()):
                 try:
                     xml_file_dict = xml_file_dict_obj.getObject()
                     logger.debug('xml_file_dict=%s', xml_file_dict)

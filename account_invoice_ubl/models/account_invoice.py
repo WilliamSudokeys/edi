@@ -59,7 +59,7 @@ class AccountInvoice(models.Model):
             self, parent_node, ns, version='2.1'):
         self.ensure_one()
         cdr_dict = self._ubl_get_contract_document_reference_dict()
-        for doc_type_code, doc_id in cdr_dict.items():
+        for doc_type_code, doc_id in list(cdr_dict.items()):
             cdr = etree.SubElement(
                 parent_node, ns['cac'] + 'ContractDocumentReference')
             cdr_id = etree.SubElement(cdr, ns['cbc'] + 'ID')

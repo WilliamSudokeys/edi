@@ -49,30 +49,30 @@ class TestInvoiceImport(TransactionCase):
             ('type', '=', 'in_invoice'),
             ('reference', '=', '562044387')
             ])
-        self.assertEquals(len(invoices), 1)
+        self.assertEqual(len(invoices), 1)
         inv = invoices[0]
-        self.assertEquals(inv.type, 'in_invoice')
-        self.assertEquals(
+        self.assertEqual(inv.type, 'in_invoice')
+        self.assertEqual(
             fields.Date.to_string(inv.date_invoice), '2015-07-02')
-        self.assertEquals(
+        self.assertEqual(
             inv.partner_id,
             self.env.ref('account_invoice_import_invoice2data.free'))
-        self.assertEquals(inv.journal_id.type, 'purchase')
-        self.assertEquals(
+        self.assertEqual(inv.journal_id.type, 'purchase')
+        self.assertEqual(
             float_compare(inv.amount_total, 29.99, precision_digits=2), 0)
-        self.assertEquals(
+        self.assertEqual(
             float_compare(inv.amount_untaxed, 24.99, precision_digits=2), 0)
-        self.assertEquals(
+        self.assertEqual(
             len(inv.invoice_line_ids), 1)
         iline = inv.invoice_line_ids[0]
-        self.assertEquals(iline.name, 'Fiber optic access at the main office')
-        self.assertEquals(
+        self.assertEqual(iline.name, 'Fiber optic access at the main office')
+        self.assertEqual(
             iline.product_id,
             self.env.ref(
                 'account_invoice_import_invoice2data.internet_access'))
-        self.assertEquals(
+        self.assertEqual(
             float_compare(iline.quantity, 1.0, precision_digits=0), 0)
-        self.assertEquals(
+        self.assertEqual(
             float_compare(iline.price_unit, 24.99, precision_digits=2), 0)
 
         # Prepare data for next test i.e. invoice update
@@ -94,7 +94,7 @@ class TestInvoiceImport(TransactionCase):
             })
         f.close()
         action = wiz2.import_invoice()
-        self.assertEquals(
+        self.assertEqual(
             action['res_model'], 'account.invoice.import')
         # Choose to update the existing invoice
         wiz2.update_invoice()
@@ -103,7 +103,7 @@ class TestInvoiceImport(TransactionCase):
             ('type', '=', 'in_invoice'),
             ('reference', '=', '562044387')
             ])
-        self.assertEquals(len(invoices), 1)
+        self.assertEqual(len(invoices), 1)
         inv = invoices[0]
-        self.assertEquals(
+        self.assertEqual(
             fields.Date.to_string(inv.date_invoice), '2015-07-02')

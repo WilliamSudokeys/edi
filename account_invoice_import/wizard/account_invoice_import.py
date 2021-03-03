@@ -76,7 +76,7 @@ class AccountInvoiceImport(models.TransientModel):
         modules'''
         bdio = self.env['business.document.import']
         xml_files_dict = bdio.get_xml_files_from_pdf(file_data)
-        for xml_filename, xml_root in xml_files_dict.items():
+        for xml_filename, xml_root in list(xml_files_dict.items()):
             logger.info('Trying to parse XML file %s', xml_filename)
             parsed_inv = self.parse_xml_invoice(xml_root)
             if parsed_inv:
@@ -900,7 +900,7 @@ class AccountInvoiceImport(models.TransientModel):
         return action
 
     def xpath_to_dict_helper(self, xml_root, xpath_dict, namespaces):
-        for key, value in xpath_dict.items():
+        for key, value in list(xpath_dict.items()):
             if isinstance(value, list):
                 isdate = isfloat = False
                 if 'date' in key:

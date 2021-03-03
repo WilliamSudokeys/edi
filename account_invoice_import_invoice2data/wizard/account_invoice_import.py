@@ -92,7 +92,7 @@ class AccountInvoiceImport(models.TransientModel):
             parsed_inv['amount_untaxed'] = invoice2data_res['amount_untaxed']
         if 'amount_tax' in invoice2data_res:
             parsed_inv['amount_tax'] = invoice2data_res['amount_tax']
-        for key, value in parsed_inv.items():
+        for key, value in list(parsed_inv.items()):
             if key.startswith('date') and parsed_inv[key]:
                 parsed_inv[key] = fields.Date.to_string(parsed_inv[key])
         return parsed_inv
