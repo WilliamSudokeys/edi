@@ -57,7 +57,7 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_1.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 24,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 15,
             }
         )
@@ -68,7 +68,7 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_2.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 5,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 25,
             }
         )
@@ -80,7 +80,7 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_3.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 15,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 25,
             }
         )
@@ -92,12 +92,12 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_4.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 15,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 25,
             }
         )
-        cls._add_procurements(cls.line3, [5])
-        cls._add_procurements(cls.line4, [2, 2, 2])
+        # cls._add_procurements(cls.line3, [5])
+        # cls._add_procurements(cls.line4, [2, 2, 2])
         cls.purchase_order.button_confirm()
         cls.picking = cls.purchase_order.picking_ids
 

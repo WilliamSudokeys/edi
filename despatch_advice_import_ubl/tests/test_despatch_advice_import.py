@@ -43,7 +43,7 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_2.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 24,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 15,
             }
         )
@@ -54,12 +54,12 @@ class TestDespatchAdviceImport(SavepointCase):
                 "name": cls.product_2.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 15,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 25,
             }
         )
         cls.DespatchAdviceImport = cls.env["despatch.advice.import"]
-        cls.ProcurementOrder = cls.env["procurement.order"]
+#        cls.ProcurementOrder = cls.env["procurement.order"]
 
         with file_open(
             "despatch_advice_import_ubl/tests/files/despatch_advice_tmpl.xml", "rb"

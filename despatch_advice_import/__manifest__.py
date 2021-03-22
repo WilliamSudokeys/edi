@@ -6,7 +6,7 @@
     'name': 'Despatch Advice Import',
     'summary': """
         Despatch Advice import""",
-    'version': '10.0.1.0.0',
+    'version': '12.0.1.0.0',
     'license': 'AGPL-3',
     'author': 'ACSONE SA/NV,Odoo Community Association (OCA)',
     'depends': ['purchase', 'base_business_document_import_stock'],
