@@ -105,8 +105,9 @@ class TestDespatchAdviceImport(SavepointCase):
             "estimated_delivery_date": "2020-11-17",
             "lines": [
                 {
-                    "backorder_qty": 12,
+                    "backorder_qty": 12.0,
                     "line_id": str(self.line1.id),
+                    "order_line_id": str(self.line1.id),
                     "product_ref": self.product_1.default_code,
                     "qty": self.line1.product_qty,
                     "ref": str(self.purchase_order.name),
@@ -115,6 +116,7 @@ class TestDespatchAdviceImport(SavepointCase):
                 {
                     "backorder_qty": None,
                     "line_id": str(self.line2.id),
+                    "order_line_id": str(self.line2.id),
                     "product_ref": self.product_2.default_code,
                     "qty": self.line2.product_qty,
                     "ref": str(self.purchase_order.name),
@@ -124,6 +126,7 @@ class TestDespatchAdviceImport(SavepointCase):
             "ref": str(self.purchase_order.name),
             "supplier": {"vat": "BE0477472701"},
         }
+        self.maxDiff = None
         self.assertDictEqual(expected, result)
 
     def test_02(self):
@@ -161,8 +164,9 @@ class TestDespatchAdviceImport(SavepointCase):
             "estimated_delivery_date": "2020-11-17",
             "lines": [
                 {
-                    "backorder_qty": 12,
+                    "backorder_qty": 12.0,
                     "line_id": str(self.line1.id),
+                    "order_line_id": str(self.line1.id),
                     "product_ref": self.product_1.default_code,
                     "qty": self.line1.product_qty,
                     "ref": str(self.purchase_order.name),

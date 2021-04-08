@@ -107,7 +107,7 @@ class TestDespatchAdviceImport(SavepointCase):
         return {
             "backorder_qty": backorder_qty,
             "qty": qty if qty is not None else order_line.product_qty,
-            "line_id": order_line.id,
+            "order_line_id": order_line.id,
             "ref": order_line.order_id.name,
             "product_ref": order_line.product_id.default_code,
             "uom": {"unece_code": order_line.product_uom.unece_code},

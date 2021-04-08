@@ -47,6 +47,7 @@
     <cbc:DeliveredQuantity unitCode="BG">{line_1_qty}</cbc:DeliveredQuantity>
     <cbc:OutstandingQuantity unitCode="BG">{line_1_backorder_qty}</cbc:OutstandingQuantity>
     <cac:OrderLineReference>
+      <cbc:LineID>{line_1_id}</cbc:LineID>
       <cac:OrderReference>
         <cbc:ID>{order_id}</cbc:ID>
       </cac:OrderReference>
@@ -68,7 +69,7 @@
     <cbc:ID>{line_2_id}</cbc:ID>
     <cbc:DeliveredQuantity unitCode="C62">{line_2_qty}</cbc:DeliveredQuantity>
     <cac:OrderLineReference>
-      <cbc:LineID>331971</cbc:LineID>
+      <cbc:LineID>{line_2_id}</cbc:LineID>
       <cac:OrderReference>
         <cbc:ID>{order_id}</cbc:ID>
       </cac:OrderReference>
