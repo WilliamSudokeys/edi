@@ -174,14 +174,19 @@ class InventoryUblImport(models.TransientModel):
         if "sup_code" in stock_by:
             unmatch = sorted(self._get_unknown_supplier_codes(supplier, stock_by))
             feedback["unmatch_codes"] = unmatch
+        else:
+            # we guess which supplierinfo to impact without sup_code
+            self._update_supplierinfo_when_no_sup_code(
+                sql_result, stock_by, supplier, inventory_date
+            )
         return feedback
 
     def _get_supplier_product_data_with_query(self, supplier, stock_by):
-        """ supplier: record
-            stock_by: dict, example:
-                {'sup_code': {'BLA': 7.0, 'MYCD': 15.0},
-                 'def_code': {'CD': 15.0, 'BRA': 7.0}
-                 'bardode': {...} }
+        """supplier: record
+        stock_by: dict, example:
+            {'sup_code': {'BLA': 7.0, 'MYCD': 15.0},
+             'def_code': {'CD': 15.0, 'BRA': 7.0}
+             'bardode': {...} }
         """
         sql_field_names = {
             "def_code": "pp.default_code",
@@ -363,9 +368,29 @@ class InventoryUblImport(models.TransientModel):
             )
         return supplierinfo_ids
 
+    def _update_supplierinfo_when_no_sup_code(
+        self, data, stock_by, supplier, inventory_date
+    ):
+        """Allow to update supplier when no sup_code"""
+        if "barcode" in stock_by:
+            key = "barcode"
+        elif "def_code" in stock_by:
+            key = "def_code"
+        vals = {}
+        for elm in data:
+            if elm.get(key) and elm[key] in stock_by[key]:
+                vals[elm["supinfo_id"]] = stock_by[key][elm[key]]
+        vals2upd = defaultdict(list)
+        for key, val in vals.items():
+            vals2upd[val].append(key)
+        for key, values in vals2upd.items():
+            self.env["product.supplierinfo"].browse(values).write(
+                {"stock": key, "last_stock": inventory_date}
+            )
+
     def _get_unknown_supplier_codes(self, supplier, stock_by):
-        """ Some products may not have been found in Odoo
-            We must provides on relative codes
+        """Some products may not have been found in Odoo
+        We must provides on relative codes
         """
         # example {'sup_code': {'UN': 7.0, 'MYCD': 15.0, 'BIN4U': 10.0}, }
         codes = list(set(stock_by["sup_code"].keys()))
