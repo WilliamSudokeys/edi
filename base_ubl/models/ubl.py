@@ -557,6 +557,7 @@ class BaseUbl(models.AbstractModel):
     def ubl_parse_customer_party(self, customer_party_node, ns):
         ref_xpath = customer_party_node.xpath(
             'cac:SupplierAssignedAccountID', namespaces=ns)
+        import pdb; pdb.set_trace()
         party_node = customer_party_node.xpath('cac:Party', namespaces=ns)[0]
         partner_dict = self.ubl_parse_party(party_node, ns)
         partner_dict['ref'] = ref_xpath and ref_xpath[0].text or False

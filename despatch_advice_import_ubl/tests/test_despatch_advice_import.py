@@ -64,12 +64,12 @@ class TestDespatchAdviceImport(SavepointCase):
         with file_open(
             "despatch_advice_import_ubl/tests/files/despatch_advice_tmpl.xml", "rb"
         ) as f:
-            cls.despatch_advice_xml1 = f.read()
+            cls.despatch_advice_xml1 = f.read().decode("utf-8")
 
         with file_open(
             "despatch_advice_import_ubl/tests/files/despatch_advice_2.xml", "rb"
         ) as f:
-            cls.despatch_advice_xml2 = f.read()
+            cls.despatch_advice_xml2 = f.read().decode("utf-8")
 
     def test_01(self):
         """
@@ -92,6 +92,9 @@ class TestDespatchAdviceImport(SavepointCase):
             line_2_product_ref=self.product_2.default_code,
             line_2_backorder_qty=0,
         )
+        # ValueError: Unicode strings with encoding declaration are not supported. Please use bytes input or XML fragments without declaration.
+        # To avoid the error above, we remove encoding
+        xml_content = xml_content.replace('<?xml version="1.0" encoding="UTF-8"?>\n', "")
         result = self.DespatchAdviceImport.parse_despatch_advice(
             xml_content, "test.xml"
         )
@@ -151,6 +154,7 @@ class TestDespatchAdviceImport(SavepointCase):
             line_2_product_ref=self.product_2.default_code,
             line_2_backorder_qty=0,
         )
+        xml_content = xml_content.replace('<?xml version="1.0" encoding="UTF-8"?>\n', "")
         result = self.DespatchAdviceImport.parse_despatch_advice(
             xml_content, "test2.xml"
         )
@@ -175,12 +179,32 @@ class TestDespatchAdviceImport(SavepointCase):
                 {
                     "backorder_qty": None,
                     "line_id": str(self.line2.id),
+                    "order_line_id": str(self.line2.id),
                     "product_ref": self.product_2.default_code,
                     "qty": self.line2.product_qty,
                     "ref": str(self.purchase_order.name),
                     "uom": {"unece_code": "C62"},
                 },
             ],
+            "ref": "",  # no order reference for this file
             "supplier": {"vat": "BE0477472701"},
         }
-        self.assertDictEqual(expected, result)
+
+        res = check_dict(expected, result)
+        self.assertDictEqual(expected, result, "Error on these keys %s" % res)
+
+
+def check_dict(expected, result):
+    import copy
+    new = {}
+    res = copy.deepcopy(result)
+    for k, v in expected.items():
+        if k in result:
+            if v != result[k]:
+                new[k] = (v, result[k])
+            del res[k]
+        else:
+            print(k, v)
+    if res:
+        new['missing keys in expected'] = res
+    return new

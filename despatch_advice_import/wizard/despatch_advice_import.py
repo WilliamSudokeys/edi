@@ -4,6 +4,8 @@
 
 import logging
 import mimetypes
+import base64
+from collections import defaultdict
 
 from lxml import etree
 from odoo import _, api, fields, models
@@ -80,7 +82,7 @@ class DespatchAdviceImport(models.TransientModel):
         logger.debug("Result of OrderResponse parsing: ", parsed_despatch_advice)
         if "attachments" not in parsed_despatch_advice:
             parsed_despatch_advice["attachments"] = {}
-        parsed_despatch_advice["attachments"][filename] = document.encode("base64")
+        parsed_despatch_advice["attachments"][filename] = base64.encodestring(document)
         if "chatter_msg" not in parsed_despatch_advice:
             parsed_despatch_advice["chatter_msg"] = []
         if (
@@ -127,18 +129,73 @@ class DespatchAdviceImport(models.TransientModel):
     @api.multi
     def process_document(self):
         self.ensure_one()
-        parsed_order_document = self.parse_parse_despatch_advice(
-            self.document.decode("base64"), self.filename
+        parsed_order_document = self.parse_despatch_advice(
+            base64.b64decode(self.document), self.filename
         )
         self.process_data(parsed_order_document)
 
     @api.model
+    def _guess_document_type(self, lines):
+        if not lines:
+            return False
+        ref = lines[0].get("ref")
+        purch = self.env["purchase.order"].search([("name", "=", ref)])
+        if purch:
+            return "purchase.order"
+        picking = self.env["stock.picking"].search([("name", "=", ref)])
+        if picking:
+            return "stock.picking"
+        if self.env.get("sale.order", False):
+            self.env["sale.order"].search([("name", "=", ref)])
+            # "sale.order" is not implemented
+        raise NotImplementedError
+
+    @api.model
+    def _extract_products_with_codes(self, product_codes):
+        "Method candidate to override"
+        return {
+            x.default_code: x.id
+            for x in self.env["product.product"].search(
+                [("default_code", "in", product_codes)]
+            )
+        }
+
+    @api.model
     def process_data(self, parsed_order_document):
         bdio = self.env["business.document.import"]
+        model = self._guess_document_type(parsed_order_document.get("lines"))
+        if model == "stock.picking":
+            return self._process_data4picking_out(parsed_order_document.get("lines"))
+        # module in 10.0 implements purchase flow, here
         po_name = parsed_order_document.get("ref")
-
         lines_doc = parsed_order_document.get("lines")
-        lines_by_id = {int(line["line_id"]): line for line in lines_doc}
+        lines_by_id = {}
+        for line in lines_doc:
+            if lines_by_id.has_key(int(line["order_line_id"])):
+                lines_by_id[int(line["order_line_id"])]["qty"] += line["qty"]
+                lines_by_id[int(line["order_line_id"])]["backorder_qty"] += line[
+                    "backorder_qty"
+                ]
+                lines_by_id[int(line["order_line_id"])]["product_lot"].append(
+                    line["product_lot"]
+                )
+                lines_by_id[int(line["order_line_id"])]["product_lot"] = list(
+                    set(lines_by_id[int(line["order_line_id"])]["product_lot"])
+                )
+                lines_by_id[int(line["order_line_id"])]["uom"]["unece_code"].append(
+                    line["uom"]["unece_code"]
+                )
+                lines_by_id[int(line["order_line_id"])]["uom"]["unece_code"] = list(
+                    set(lines_by_id[int(line["order_line_id"])]["uom"]["unece_code"])
+                )
+            else:
+                lines_by_id[int(line["order_line_id"])] = line
+                lines_by_id[int(line["order_line_id"])]["product_lot"] = [
+                    lines_by_id[int(line["order_line_id"])]["product_lot"]
+                ]
+                lines_by_id[int(line["order_line_id"])]["uom"]["unece_code"] = [
+                    lines_by_id[int(line["order_line_id"])]["uom"]["unece_code"]
+                ]
 
         lines = self.env["purchase.order.line"].browse(lines_by_id.keys())
 
@@ -149,13 +206,13 @@ class DespatchAdviceImport(models.TransientModel):
             if line_info["ref"]:
                 if order.name != line_info["ref"]:
                     bdio.user_error_wrap(
-                        _("No purchase order found for name %s.") %
-                        line_info["ref"])
+                        _("No purchase order found for name %s.") % line_info["ref"]
+                    )
             else:
                 if order.name != po_name:
                     bdio.user_error_wrap(
-                        _("No purchase order found for name %s.") %
-                        po_name)
+                        _("No purchase order found for name %s.") % po_name
+                    )
 
             stock_moves = line.move_ids.filtered(
                 lambda x: x.state not in ("cancel", "done")
@@ -168,6 +225,10 @@ class DespatchAdviceImport(models.TransientModel):
                 self._process_rejected(stock_moves, parsed_order_document)
             else:
                 self._process_conditional(stock_moves, parsed_order_document, line_info)
+
+    @api.model
+    def _process_data4picking_out(self, lines_doc):
+        NotImplementedError
 
     @api.model
     def _process_rejected(self, stock_moves, parsed_order_document):
@@ -212,21 +273,13 @@ class DespatchAdviceImport(models.TransientModel):
         move_ids_to_cancel = []
         for move in moves:
             self._check_picking_status(move.picking_id)
-            if (
-                float_compare(
-                    qty, move.product_qty, precision_digits=precision
-                )
-                >= 0
-            ):
+            if float_compare(qty, move.product_qty, precision_digits=precision) >= 0:
                 # qty planned => qty into the stock move: Keep it
                 qty -= move.product_qty
                 continue
             if (
                 qty
-                and float_compare(
-                    qty, move.product_qty, precision_digits=precision
-                )
-                < 0
+                and float_compare(qty, move.product_qty, precision_digits=precision) < 0
             ):
                 # qty planned < qty into the stock move: Split it
                 new_move_id = move._split(move.product_qty - qty)
@@ -248,25 +301,19 @@ class DespatchAdviceImport(models.TransientModel):
             ):
                 # backorder_qty < qty into the move -> split the move
                 # anf cancel remaining qty
-                move_ids_to_cancel.append(
-                    move._split(move.product_qty - backorder_qty)
-                )
+                move_ids_to_cancel.append(move._split(move.product_qty - backorder_qty))
 
             backorder_qty -= move.product_qty
             move_ids_to_backorder.append(move.id)
         # move backorder moves to a backorder
         if move_ids_to_backorder:
-            moves_to_backorder = self.env["stock.move"].browse(
-                move_ids_to_backorder
-            )
+            moves_to_backorder = self.env["stock.move"].browse(move_ids_to_backorder)
             self._add_moves_to_backorder(moves_to_backorder)
         # cancel moves to cancel
         if move_ids_to_cancel:
             moves_to_cancel = self.env["stock.move"].browse(move_ids_to_cancel)
             moves_to_cancel._action_cancel()
-            moves_to_cancel.write(
-                {"note": _("No backorder planned by the supplier.")}
-            )
+            moves_to_cancel.write({"note": _("No backorder planned by the supplier.")})
         # Reset Operations
         # moves[0].picking_id.do_prepare_partial()
 
@@ -298,9 +345,7 @@ class DespatchAdviceImport(models.TransientModel):
         :param picking:
         :return:
         """
-        if any(
-            operation.qty_done != 0 for operation in picking.move_line_ids
-        ):
+        if any(operation.qty_done != 0 for operation in picking.move_line_ids):
             raise UserError(
                 _(
                     "Some Pack Operations have already started! "

@@ -4,7 +4,8 @@
 
 import logging
 
-from odoo import api, models
+from openerp import api, models, _
+from openerp.exceptions import Warning as UserError
 
 logger = logging.getLogger(__name__)
 
@@ -40,18 +41,24 @@ class DespatchAdviceImport(models.TransientModel):
         despatch_advice_type_code_xpath = xml_root.xpath(
             "/main:DespatchAdvice/cbc:DespatchAdviceTypeCode", namespaces=ns
         )
-        supplier_xpath = xml_root.xpath(
-            "/main:DespatchAdvice/cac:DespatchSupplierParty/cac:Party", namespaces=ns
-        )
-        supplier_dict = self.ubl_parse_party(supplier_xpath[0], ns)
-        # We only take the "official references" for supplier_dict
-        supplier_dict = {"vat": supplier_dict.get("vat")}
+        try:
+            # Here is the 
+            supplier_xpath = xml_root.xpath(
+                "/main:DespatchAdvice/cac:DespatchSupplierParty/cac:Party", namespaces=ns
+            )
+            supplier_dict = self.ubl_parse_party(supplier_xpath[0], ns)
+            # We only take the "official references" for supplier_dict
+            supplier_dict = {"vat": supplier_dict.get("vat")}
+        except IndexError:
+            supplier_dict = self._guess_party_from_custom_cases(xml_root, ns, kind="supplier")
         customer_xpath = xml_root.xpath(
             "/main:DespatchAdvice/cac:DeliveryCustomerParty/cac:Party", namespaces=ns
         )
-        customer_dict = self.ubl_parse_party(customer_xpath[0], ns)
-
-        customer_dict = {"vat": customer_dict.get("vat")}
+        if customer_xpath:
+            customer_dict = self.ubl_parse_party(customer_xpath[0], ns)
+            customer_dict = {"vat": customer_dict.get("vat")}
+        else:
+            customer_dict = self._guess_party_from_custom_cases(xml_root, ns)
         lines_xpath = xml_root.xpath(
             "/main:DespatchAdvice/cac:DespatchLine", namespaces=ns
         )
@@ -71,6 +78,10 @@ class DespatchAdviceImport(models.TransientModel):
         return res
 
     @api.model
+    def _guess_party_from_custom_cases(self, xml_root, ns, kind="customer"):
+        pass
+
+    @api.model
     def parse_ubl_despatch_advice_line(self, line, ns):
         line_id_xpath = line.xpath("cbc:ID", namespaces=ns)
         qty_xpath = line.xpath("cbc:DeliveredQuantity", namespaces=ns)
@@ -83,14 +94,25 @@ class DespatchAdviceImport(models.TransientModel):
         product_ref_xpath = line.xpath(
             "cac:Item/cac:SellersItemIdentification/cbc:ID", namespaces=ns
         )
-
+        if not product_ref_xpath:
+            product_ref_xpath = line.xpath(
+                "cac:Item/cac:BuyersItemIdentification/cbc:ID", namespaces=ns
+            )
         order_reference_xpath = line.xpath(
             "cac:OrderLineReference/cac:OrderReference/cbc:ID", namespaces=ns
         )
+        order_line_id_xpath = line.xpath("cac:OrderLineReference/cbc:LineID", namespaces=ns)
+        lot = line.xpath("cac:Item/cac:ItemInstance/cac:LotIdentification/cbc:LotNumberID", namespaces=ns)
+
+        if not order_line_id_xpath:
+            raise UserError(_("Missing line ID in the Despatch Advice."))
+
         res_line = {
             "line_id": line_id_xpath[0].text,
+            "order_line_id": order_line_id_xpath[0].text,
             "ref": order_reference_xpath[0].text if order_reference_xpath else '',
             "qty": qty,
+            "product_lot": lot and lot[0].text or False,
             "product_ref": product_ref_xpath[0].text,
             "uom": {"unece_code": qty_xpath[0].attrib.get("unitCode")},
             "backorder_qty": backorder_qty,
