@@ -12,10 +12,10 @@ class BaseRestRequestsAdapter(Component):
     _inherit = "base.webservice.adapter"
 
     def _request(self, method, **kwargs):
-        new_kwargs = kwargs.copy()
-        new_kwargs.update(
-            {"auth": self._get_auth(**kwargs), "headers": self._get_headers(**kwargs)}
-        )
+        new_kwargs = {
+            "auth": self._get_auth(**kwargs),
+            "headers": self._get_headers(**kwargs),
+        }
         request = requests.request(
             method, self.collection.url.format(**kwargs), **new_kwargs
         )
